@@ -6,10 +6,12 @@ const userMessages = require('./lang/en/en.js');
 
 const outputFolder = "output";
 
-// Make sure /output/ directory exists
 if (!fs.existsSync(outputFolder)) {
     fs.mkdirSync(outputFolder);
 }
+
+// Digital Ocean provides port by default
+const PORT = process.env.PORT || 3000;
 
 http.createServer((req, res) => {
     console.log("Server received a request.");
@@ -17,7 +19,7 @@ http.createServer((req, res) => {
     const parsedUrl = url.parse(req.url, true);
     const pathname = parsedUrl.pathname;
 
-    // /getDate/ path
+    // handle /getDate/ request
     if (pathname.endsWith('getDate/')) {
         const current_username = parsedUrl.query.name || "Guest";
         const currentDate = getDate();
@@ -29,9 +31,11 @@ http.createServer((req, res) => {
         });
         res.end(message);
 
-    // handle /writeFile/ url path
-    } else if (pathname.endsWith('writeFile/')) {
-        const filePath = `${outputFolder}/file.txt`; 
+    // handle /writeFile/ requests
+    } else if (pathname.startsWith('/writeFile/')) {
+        const parts = pathname.split('/'); // ["", "writeFile", "file.txt"]
+        const fileName = parts[2];
+        const filePath = `${outputFolder}/${fileName}`;
         const text = parsedUrl.query.text || "";
         const logLine = `${text}\n`;
 
@@ -44,10 +48,10 @@ http.createServer((req, res) => {
             }
 
             res.writeHead(200, { "Content-Type": "text/plain" });
-            res.end(`Appended text to file.txt: ${text}`);
+            res.end(`Appended text to ${fileName}: ${text}`);
         });
 
-    // handle /readFile/ url path
+    // handle /readFile/ requests
     } else if (pathname.startsWith('/readFile/')) {
         const parts = pathname.split('/'); // ["", "readFile", "file.txt"]
         const fileName = parts[2];
@@ -65,15 +69,15 @@ http.createServer((req, res) => {
                 "Content-Type": "text/html",
                 "Access-Control-Allow-Origin": "*"
             });
-            res.end(`<pre>${textData}</pre>`);
+            res.end(`<pre>${textData}</pre>`); 
         });
 
-    // Unknown path
+    // Invalid path
     } else {
         res.writeHead(404, { "Content-Type": "text/plain" });
         res.end("404 Not Found");
     }
 
-}).listen(3000, () => {
-    console.log("Server running at http://localhost:3000/");
+}).listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
